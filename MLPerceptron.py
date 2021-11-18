@@ -8,16 +8,20 @@ class Layer:
         self.bias = np.negative(np.ones(n_neuron))
         
     def Net_input(self, x):
-        self.net_input = np.dot(x, self.weights[:-1]) +np.dot(self.bias, self.weights[:-1])
+        self.net_input = np.dot(x, self.weights[:-1]) +np.dot(self.bias, self.weights[-1])
         return self.net_input
     
     def activation(self, x):
-        self.output = 1 / (1 + np.exp(-self.Net_input(x)))
-        return self.output
+        x = self.Net_input(x)
+        self.out = np.where(x<0, 0 ,x)
+        #self.output = 1 / (1 + np.exp(-self.Net_input(x)))
+        return self.out
     
     
     def activation_drv(self, s):
-        return s*(1-s)
+        return np.where(s<0, 0, 1)
+ 
+        
 
 class MultilayerPerceptron:
     
@@ -43,7 +47,7 @@ class MultilayerPerceptron:
             layer = self.layers[i]
             
             if layer != self.layers[-1]:
-                layer.delta = np.dot(layer.activation_drv(layer.output),
+                layer.delta = np.dot(layer.activation_drv(layer.out),
                                      np.dot(self.layers[i+1].weights, self.layers[i+1].delta))
                
             else:
@@ -56,19 +60,19 @@ class MultilayerPerceptron:
             output_i = np.atleast_2d(x if i == 0 else self.layers[i - 1].output)
             layer.weights[:-1] = layer.delta * output_i.T * l_rate + layer.weights[:-1] 
             layer.weights[-1] = layer.delta * (-1) * l_rate + layer.weights[-1] 
-    def train(self, x, y, l_rate, momentum, n_iter):
+    def train(self, x, y, l_rate, n_iter):
         
         costs =[]
         
         for i in range(n_iter):
             for xi, yi in zip(x, y):
-                self.back_propagation(xi, yi, l_rate, momentum)
+                self.back_propagation(xi, yi, l_rate)
             cost = np.sum((y-self.feed_forward(x))**2) / 2.0
             costs.append(cost)
             
         return costs
     
     def predict(self, x):
-        outputs = (self.feed_forward(x)).tolist()
+        outputs = self.feed_forward(x)
  
-        return outputs.index(max(outputs))    
+        return outputs 

@@ -1,6 +1,7 @@
 import math as m
 import random as r
-from simple_geometry import *
+from .simple_geometry import *
+
 
 
 class Car():
