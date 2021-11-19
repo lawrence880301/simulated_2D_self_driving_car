@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import filedialog
 from DataPreprocessor import Datapreprocessor
 from MLPerceptron import *
-from 作業二模擬程式.simple_playground import *
+from simple_playground import *
 
-
+model = None
 def openfile():
     dataset_url = filedialog.askopenfilename(title="Select file")
     return dataset_url
@@ -27,6 +27,7 @@ def draw_track():
             canvas.create_line(x0, y0, x1, y1)
 
 def select_dataset_to_train():
+    global model
     dataset = Datapreprocessor.readfile(openfile())
     dataset = [data.strip().split(' ') for data in dataset]
     dataset = Datapreprocessor.text_to_numlist(dataset)
@@ -39,6 +40,7 @@ def select_dataset_to_train():
         model = MultilayerPerceptron(5,5,5,1)
         train_x, train_y = Datapreprocessor.feature_label_split(dataset)
         model.train(np.array(train_x), np.array(train_y), 0.001, 1000)
+
 
 window = tk.Tk()
 window.title('self driving car')

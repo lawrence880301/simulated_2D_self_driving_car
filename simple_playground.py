@@ -1,6 +1,7 @@
 import math as m
 import random as r
-from .simple_geometry import *
+import numpy as np
+from simple_geometry import *
 
 
 
@@ -154,7 +155,8 @@ class Playground():
         except Exception:
             self._setDefaultLine()
 
-    def predictAction(self, state):
+    def predictAction(self, state, model):
+        model.predict(np.array(state))
         return r.randint(0, self.n_actions-1)
 
     @property

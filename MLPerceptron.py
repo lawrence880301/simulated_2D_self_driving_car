@@ -4,13 +4,14 @@ from matplotlib import pyplot as plt
 class Layer:
     def __init__(self, n_input, n_neuron):
         
-        self.weights = np.random.rand(n_input + 1, n_neuron)
-        self.bias = np.negative(np.ones(n_neuron))
+        self.weights = np.random.rand(n_input, n_neuron)
+        self.bias = np.ones(n_neuron)
         
     def Net_input(self, x):
-        self.net_input = np.dot(x, self.weights[:-1]) +np.dot(self.bias, self.weights[-1])
+        self.net_input = np.dot(x, self.weights) + self.bias
         return self.net_input
     
+    #RELU
     def activation(self, x):
         x = self.Net_input(x)
         self.out = np.where(x<0, 0 ,x)
@@ -28,17 +29,16 @@ class MultilayerPerceptron:
     def __init__(self, n_layer, n_neuron, n_input, n_output):
         
         self.layers = []
-        
+        self.bias = np.array([-1])
         self.layers.append(Layer(n_input, n_neuron))
         [self.layers.append(Layer(n_neuron, n_neuron)) for _ in range(1, n_layer-1)]
         self.layers.append(Layer(n_neuron, n_output))
     
     def feed_forward(self, x):
-        
         for layer in self.layers:
             x = layer.activation(x)
-                        
         return x
+
     def back_propagation(self, x, y, l_rate):
         
         o_i = self.feed_forward(x)
@@ -57,9 +57,10 @@ class MultilayerPerceptron:
         
         for i, layer in enumerate(self.layers):
             layer = self.layers[i]
-            output_i = np.atleast_2d(x if i == 0 else self.layers[i - 1].output)
-            layer.weights[:-1] = layer.delta * output_i.T * l_rate + layer.weights[:-1] 
-            layer.weights[-1] = layer.delta * (-1) * l_rate + layer.weights[-1] 
+            output_i = np.atleast_2d(x if i == 0 else self.layers[i - 1].out)
+            layer.weights = layer.delta * output_i.T * l_rate + layer.weights
+
+
     def train(self, x, y, l_rate, n_iter):
         
         costs =[]
