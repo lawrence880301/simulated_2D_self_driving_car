@@ -1,4 +1,5 @@
 import random
+import numpy as np
 class Datapreprocessor():
     def __init__(self) -> None:
         pass
@@ -41,6 +42,15 @@ class Datapreprocessor():
             feature.append(row[:-1])
             label.append(row[-1])
         return feature, label
+
+    def normalize_2d_np(array):
+        row_sums = array.sum(axis=1)
+        array = array / row_sums[:, np.newaxis]
+        return array
+
+    def normalize_1d_np(array):
+        array = (array - np.amin(array)) / (np.amax(array) - np.amin(array))
+        return array
 
     
     def label_preprocess(dataset):

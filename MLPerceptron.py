@@ -1,79 +1,90 @@
 import numpy as np
-from matplotlib import pyplot as plt  
+import math
+import random
 
-class Layer:
-    def __init__(self, n_input, n_neuron):
-        
-        self.weights = np.random.rand(n_input, n_neuron)
-        self.bias = np.ones(n_neuron)
-        
-    def Net_input(self, x):
-        self.net_input = np.dot(x, self.weights) + self.bias
-        return self.net_input
-    
-    #RELU
-    def activation(self, x):
-        x = self.Net_input(x)
-        self.out = np.where(x<0, 0 ,x)
-        #self.output = 1 / (1 + np.exp(-self.Net_input(x)))
-        return self.out
-    
-    
-    def activation_drv(self, s):
-        return np.where(s<0, 0, 1)
- 
+#
+# Activate functions
+#
+
+def __sigmoid(x): return 1.0 / (1.0 + np.exp(-x))
+def __dsigmoid(x):
+    s = __sigmoid(x)
+    return s * (1.0 - s)
+
+Sigmoid = (__sigmoid, __dsigmoid)
+
+#
+# Layers
+#
+
+class BaseLayer:
+    def __init__(self, inputs, outputs):
+        self.inputs, self.outputs = inputs, outputs
+    def forward(self, x): raise NotImplementedError
+    def backword(self, dA, learning_rate): raise NotImplementedError
+
+class FullyConnectedLayer(BaseLayer):
+    def __init__(self, inputs, outputs, act):
+        super().__init__(inputs, outputs)
+        self.w = np.random.rand(outputs, inputs) - 0.5
+        self.b = np.random.rand(outputs, 1) - 0.5
+        self.act, self.dact = act
+    def forward(self, x):
+        self.x = x
+        self.z = self.w.dot(x) + self.b
+        self.a = self.act(self.z)
+        return self.a
+    def backword(self, dA, learning_rate):
+        dB = dA * self.dact(self.z)
+        dW = dB.dot(self.x.T)
+        dX = dB.T.dot(self.w).T
+        self.w -= dW * learning_rate
+        self.b -= dB * learning_rate
+        return dX
         
 
-class MultilayerPerceptron:
-    
-    def __init__(self, n_layer, n_neuron, n_input, n_output):
-        
-        self.layers = []
-        self.bias = np.array([-1])
-        self.layers.append(Layer(n_input, n_neuron))
-        [self.layers.append(Layer(n_neuron, n_neuron)) for _ in range(1, n_layer-1)]
-        self.layers.append(Layer(n_neuron, n_output))
-    
-    def feed_forward(self, x):
-        for layer in self.layers:
-            x = layer.activation(x)
-        return x
+class SigmoidLayer(FullyConnectedLayer):
+    def __init__(self, inputs, outputs):
+        super().__init__(inputs, outputs, act=Sigmoid)
 
-    def back_propagation(self, x, y, l_rate):
-        
-        o_i = self.feed_forward(x)
-        
-        for i in reversed(range(len(self.layers))):
-            layer = self.layers[i]
-            
-            if layer != self.layers[-1]:
-                layer.delta = np.dot(layer.activation_drv(layer.out),
-                                     np.dot(self.layers[i+1].weights, self.layers[i+1].delta))
-               
-            else:
-                layer.error = y - o_i
-                layer.delta = layer.error * layer.activation_drv(o_i)
-                
-        
-        for i, layer in enumerate(self.layers):
-            layer = self.layers[i]
-            output_i = np.atleast_2d(x if i == 0 else self.layers[i - 1].out)
-            layer.weights = layer.delta * output_i.T * l_rate + layer.weights
+class InputLayer(BaseLayer):
+    def __init__(self, inputs):
+        super().__init__(inputs, inputs)
+    def forward(self, x):
+        assert self.inputs == x.shape[0]
+        return x.reshape((x.shape[0], 1))
+    def backword(self, dA, learning_rate):
+        return dA
 
 
-    def train(self, x, y, l_rate, n_iter):
-        
-        costs =[]
-        
-        for i in range(n_iter):
-            for xi, yi in zip(x, y):
-                self.back_propagation(xi, yi, l_rate)
-            cost = np.sum((y-self.feed_forward(x))**2) / 2.0
-            costs.append(cost)
-            
-        return costs
-    
+
+
+#
+# NeuralNetwork
+#
+
+class NeuralNetwork:
+    def __init__(self, layers):
+        self.layers = layers
     def predict(self, x):
-        outputs = self.feed_forward(x)
- 
-        return outputs 
+        for layer in self.layers:
+            x = layer.forward(x)
+        return x
+    def update(self, dA, learning_rate):
+        for layer in self.layers[::-1]:
+            dA = layer.backword(dA, learning_rate)
+    def fit(self, data, learning_rate=0.01, threshold=1e-5, epochs=100000):
+        errors = []
+        for iter in range(epochs):
+            x, y = random.choice(data)
+            h = self.predict(x)
+            d = h - y.reshape((y.shape[0], 1))
+            errors.append((0.5 * d ** 2).sum())
+            if len(errors) > len(data): del errors[0]
+            error = np.array(errors).mean()
+            if math.isfinite(error):
+                self.update(d, learning_rate)
+                if iter % 1000 == 0:
+                    print('iteration', iter, 'error', error)
+                if error <= threshold:
+                    break

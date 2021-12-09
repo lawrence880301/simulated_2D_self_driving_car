@@ -155,9 +155,10 @@ class Playground():
         except Exception:
             self._setDefaultLine()
 
-    def predictAction(self, state, model):
-        model.predict(np.array(state))
-        return r.randint(0, self.n_actions-1)
+    def predictAction(self, state, model, position = "None"):
+        print(np.array([position.x, position.y]))
+        action = model.predict(np.concatenate((np.array([position.x, position.y]),np.array(state)),axis=0)) * 80
+        return action
 
     @property
     def n_actions(self):  # action = [0~num_angles-1]
@@ -301,21 +302,33 @@ class Playground():
             return self.state
 
 
-def run_example():
+def run_example(model, feature_len):
     # use example, select random actions until gameover
     p = Playground()
 
     state = p.reset()
+    position_list = []
+    state_list = []
+    action_list = []
     while not p.done:
         # print every state and position of the car
         print(state, p.car.getPosition('center'))
+        position_list.append(p.car.getPosition('center')) 
 
         # select action randomly
         # you can predict your action according to the state here
-        action = p.predictAction(state)
+        if feature_len == 6:
+            action = p.predictAction(state, model, p.car.getPosition('center'))
+        elif feature_len == 4:
+            action = p.predictAction(state, model)
+        action_list.append(action)
+        print(action)
 
         # take action
         state = p.step(action)
+        state_list.append(state)
+
+    return position_list, state_list, action_list
 
 
 if __name__ == "__main__":
